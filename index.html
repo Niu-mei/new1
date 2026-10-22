@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星际逃亡：末日赛道</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg1: #06131c;
+        --bg2: #0d1b2a;
+        --bg3: #111827;
+        --panel: rgba(15, 23, 42, 0.82);
+        --panel-border: rgba(148, 163, 184, 0.2);
+        --text: #e5f0ff;
+        --muted: #b7c9dd;
+        --cyan: #38bdf8;
+        --cyan-strong: #0ea5e9;
+        --pink: #f472b6;
+        --purple: #8b5cf6;
+        --accent: #f59e0b;
+        --accent-2: #fb7185;
+        --danger: #ef4444;
+        --gold: #f6d365;
+      }
+
+      html, body {
+        width: 100%;
+        min-height: 100%;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(34, 211, 238, 0.18), transparent 30%),
+          linear-gradient(160deg, var(--bg1), var(--bg2) 50%, var(--bg3));
+        color: var(--text);
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .game-shell {
+        width: min(1200px, 100%);
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 18px;
+        padding: 18px;
+        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid var(--panel-border);
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.45),
+          inset 0 0 30px rgba(56, 189, 248, 0.05);
+        backdrop-filter: blur(10px);
+      }
+
+      .story-panel {
+        background: rgba(10, 17, 30, 0.8);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .story-header {
+        font-size: 0.82rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--cyan);
+        font-weight: 700;
+      }
+
+      .story-box {
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.8), rgba(15, 23, 42, 0.5));
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 16px;
+        padding: 16px;
+      }
+
+      .story-box h2 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        color: #f8fafc;
+      }
+
+      .story-box p {
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 0.95rem;
+      }
+
+      .mission-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mission-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .mission-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--cyan), var(--pink));
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
+      }
+
+      .game-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .hud {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+        gap: 14px;
+      }
+
+      .panel-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 82px;
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 16px;
+        padding: 8px 12px;
+      }
+
+      .label {
+        font-size: 0.76rem;
+        color: #cbd5e1;
+        letter-spacing: 1px;
+      }
+
+      .value {
+        font-size: clamp(1.25rem, 2.4vw, 2rem);
+        font-weight: 700;
+      }
+
+      .unit {
+        font-size: 1rem;
+        color: var(--gold);
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 22px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        color: white;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .start-btn {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      }
+
+      .restart-btn {
+        background: linear-gradient(135deg, var(--cyan), var(--cyan-strong));
+      }
+
+      .game-area {
+        position: relative;
+        width: 100%;
+        height: 62vh;
+        min-height: 320px;
+        max-height: 620px;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 2px solid rgba(148, 163, 184, 0.2);
+        background:
+          radial-gradient(circle at top, rgba(34, 211, 238, 0.16), transparent 35%),
+          linear-gradient(180deg, rgba(3, 7, 18, 0.96), rgba(2, 6, 23, 1));
+        user-select: none;
+      }
+
+      .game-area::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+        background-size: 32px 32px;
+        pointer-events: none;
+      }
+
+      .sky-glow {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 50% 10%, rgba(168, 85, 247, 0.22), transparent 28%),
+          radial-gradient(circle at 70% 40%, rgba(56, 189, 248, 0.15), transparent 26%);
+        pointer-events: none;
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(11, 15, 22, 0.68);
+        z-index: 20;
+      }
+
+      .result-card {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        border-radius: 18px;
+        padding: 28px 36px;
+        text-align: center;
+      }
+
+      .result-card h2 {
+        margin-bottom: 10px;
+        font-size: clamp(1.5rem, 2vw, 2.2rem);
+      }
+
+      .result-card p {
+        font-size: 1.1rem;
+        color: #dfeaf8;
+      }
+
+      .mobile-controls {
+        display: none;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .touch-btn {
+        width: 90px;
+        height: 52px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--cyan), var(--cyan-strong));
+        color: white;
+        font-weight: 700;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      @media (max-width: 900px) {
+        .game-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 600px) {
+        body {
+          padding: 12px;
+        }
+
+        .game-shell {
+          padding: 12px;
+        }
+
+        .hud {
+          grid-template-columns: 1fr;
+        }
+
+        .controls {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .mobile-controls {
+          display: flex;
+        }
+
+        .story-panel {
+          order: 2;
+        }
+
+        .game-panel {
+          order: 1;
+        }
+
+        .game-area {
+          height: 52vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-shell">
+      <aside class="story-panel">
+        <div class="story-header">任务简报</div>
+
+        <div class="story-box">
+          <h2 id="storyTitle">第 1 章：启动</h2>
+          <p id="storyText">
+            太阳风暴正在撕裂城市的防护层。你驾驶“曙光号”冲出黑暗区，必须在 30 秒内突破末日赛道，躲开追击的磁暴障碍。
+          </p>
+        </div>
+
+        <div class="mission-list">
+          <div class="mission-item">
+            <span class="mission-dot"></span>
+            <span>躲避重型障碍</span>
+          </div>
+          <div class="mission-item">
+            <span class="mission-dot"></span>
+            <span>争取更高分数</span>
+          </div>
+          <div class="mission-item">
+            <span class="mission-dot"></span>
+            <span>突破末日赛道</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="game-panel">
+        <header class="hud">
+          <div class="panel-box">
+            <span class="label">分数</span>
+            <span id="scoreValue" class="value">0</span>
+          </div>
+
+          <div class="panel-box timer-box">
+            <span class="label">倒计时</span>
+            <span id="timeValue" class="value">30</span>
+            <span class="unit">s</span>
+          </div>
+
+          <div class="panel-box">
+            <span class="label">危机</span>
+            <span id="dangerValue" class="value">Lv.1</span>
+          </div>
+        </header>
+
+        <div class="controls">
+          <button id="startBtn" class="btn start-btn">开始游戏</button>
+          <button id="restartBtn" class="btn restart-btn">重新开始</button>
+        </div>
+
+        <div id="gameArea" class="game-area" aria-label="赛道">
+          <canvas id="gameCanvas"></canvas>
+          <div class="sky-glow"></div>
+
+          <div id="overlay" class="overlay">
+            <div class="result-card">
+              <h2 id="resultTitle">任务结束</h2>
+              <p id="resultText">最终得分：<span id="finalScore">0</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-controls">
+          <button id="leftBtn" class="touch-btn">◀</button>
+          <button id="rightBtn" class="touch-btn">▶</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const scoreValue = document.getElementById("scoreValue");
+      const timeValue = document.getElementById("timeValue");
+      const dangerValue = document.getElementById("dangerValue");
+      const gameArea = document.getElementById("gameArea");
+      const startBtn = document.getElementById("startBtn");
+      const restartBtn = document.getElementById("restartBtn");
+      const overlay = document.getElementById("overlay");
+      const finalScore = document.getElementById("finalScore");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultText = document.getElementById("resultText");
+      const storyTitle = document.getElementById("storyTitle");
+      const storyText = document.getElementById("storyText");
+      const leftBtn = document.getElementById("leftBtn");
+      const rightBtn = document.getElementById("rightBtn");
+
+      const GAME_WIDTH = 620;
+      const GAME_HEIGHT = 420;
+
+      let score = 0;
+      let timeLeft = 30;
+      let dangerLevel = 1;
+      let moveLeft = false;
+      let moveRight = false;
+      let playerX = 0;
+      let gameStarted = false;
+
+      let obstacles = [];
+      let particles = [];
+      let stars = [];
+      let countdownTimer = null;
+      let spawnTimer = null;
+      let animationTimer = null;
+
+      let audioCtx = null;
+      let musicTimer = null;
+      let themeStep = 0;
+
+      const storyStages = [
+        {
+          title: "第 1 章：启动",
+          text: "太阳风暴正在撕裂城市的防护层。你驾驶“曙光号”冲出黑暗区，必须在 30 秒内突破末日赛道，躲开追击的磁暴障碍。"
+        },
+        {
+          title: "第 2 章：裂口",
+          text: "赛道出现裂口，磁暴障碍的速度越来越快。你的车体已经开始发热，必须保持冷静，迎接更高强度的危险。"
+        },
+        {
+          title: "第 3 章：地狱追击",
+          text: "黑暗军团已锁定你。毁灭级风暴将在瞬间吞没前方通道，只有高速穿越才能活下来。"
+        },
+        {
+          title: "第 4 章：曙光",
+          text: "太阳的最后一道光正在穿过云层。你已接近逃离点，只需再坚持一阵，就能击穿末日的封锁。"
+        }
+      ];
+
+      function resizeCanvas() {
+        const parent = gameArea;
+        const rect = parent.getBoundingClientRect();
+        const w = Math.max(300, Math.floor(rect.width));
+        const h = Math.max(300, Math.floor(rect.height));
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      function updateHUD() {
+        scoreValue.textContent = score;
+        timeValue.textContent = timeLeft;
+        dangerValue.textContent = `Lv.${dangerLevel}`;
+      }
+
+      function updateStory() {
+        if (score < 5) {
+          storyTitle.textContent = storyStages[0].title;
+          storyText.textContent = storyStages[0].text;
+        } else if (score < 12) {
+          storyTitle.textContent = storyStages[1].title;
+          storyText.textContent = storyStages[1].text;
+        } else if (score < 20) {
+          storyTitle.textContent = storyStages[2].title;
+          storyText.textContent = storyStages[2].text;
+        } else {
+          storyTitle.textContent = storyStages[3].title;
+          storyText.textContent = storyStages[3].text;
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function setPlayerPosition(x) {
+        const maxX = canvas.width - 78;
+        playerX = clamp(x, 0, maxX);
+      }
+
+      function createExplosion(x, y) {
+        for (let i = 0; i < 16; i++) {
+          particles.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * 160,
+            vy: (Math.random() - 0.5) * 180,
+            life: 0.7 + Math.random() * 0.4,
+            color: i % 2 === 0 ? "#fbbf24" : "#f97316"
+          });
+        }
+      }
+
+      function createObstacle() {
+        const laneCount = 3;
+        const lane = Math.floor(Math.random() * laneCount);
+        const laneWidth = canvas.width / laneCount;
+        const w = 46 + Math.random() * 18;
+        const h = 54 + Math.random() * 36;
+        const x = lane * laneWidth + laneWidth / 2 - w / 2;
+        const y = -h - 10;
+
+        obstacles.push({
+          x, y, w, h,
+          speed: 3 + Math.random() * 2 + dangerLevel * 0.25,
+          hue: Math.random() > 0.5 ? "#ef4444" : "#f97316"
+        });
+      }
+
+      function createStars() {
+        stars = [];
+        for (let i = 0; i < 100; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 2 + 1,
+            speed: 10 + Math.random() * 30
+          });
+        }
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 星空背景
+        const bg = ctx.createRadialGradient(
+          canvas.width * 0.5,
+          canvas.height * 0.18,
+          40,
+          canvas.width * 0.5,
+          canvas.height * 0.18,
+          canvas.width * 0.8
+        );
+        bg.addColorStop(0, "rgba(143, 116, 255, 0.18)");
+        bg.addColorStop(0.45, "rgba(56, 189, 248, 0.08)");
+        bg.addColorStop(1, "rgba(2,6,23,0)");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (const s of stars) {
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          s.y += s.speed * 0.16;
+          if (s.y > canvas.height) {
+            s.y = -10;
+            s.x = Math.random() * canvas.width;
+          }
+        }
+
+        // 赛道
+        const roadGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        roadGrad.addColorStop(0, "rgba(15, 23, 42, 0.2)");
+        roadGrad.addColorStop(1, "rgba(15, 23, 42, 0.95)");
+        ctx.fillStyle = roadGrad;
+        ctx.fillRect(canvas.width * 0.18, 0, canvas.width * 0.64, canvas.height);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.18, 0);
+        ctx.lineTo(canvas.width * 0.18, canvas.height);
+        ctx.moveTo(canvas.width * 0.82, 0);
+        ctx.lineTo(canvas.width * 0.82, canvas.height);
+        ctx.stroke();
+
+        // 车道线
+        ctx.strokeStyle = "rgba(255,255,255,0.72)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([18, 18]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.36, 0);
+        ctx.lineTo(canvas.width * 0.36, canvas.height);
+        ctx.moveTo(canvas.width * 0.64, 0);
+        ctx.lineTo(canvas.width * 0.64, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 光晕
+        ctx.fillStyle = "rgba(56, 189, 248, 0.08)";
+        for (let i = 0; i < 8; i++) {
+          const y = (i * 100 + score * 6) % (canvas.height + 60) - 30;
+          ctx.fillRect(canvas.width * 0.18 + 20, y, 16, 36);
+          ctx.fillRect(canvas.width * 0.82 - 36, y + 18, 16, 32);
+        }
+      }
+
+      function drawPlayer() {
+        const x = playerX;
+        const y = canvas.height - 110;
+        const w = 68;
+        const h = 102;
+
+        // 发光尾焰
+        ctx.save();
+        ctx.translate(x + w / 2, y + h * 0.82);
+        const trail = ctx.createRadialGradient(0, 0, 6, 0, 0, 28);
+        trail.addColorStop(0, "rgba(250,204,21,0.9)");
+        trail.addColorStop(0.4, "rgba(96,165,250,0.65)");
+        trail.addColorStop(1, "rgba(96,165,250,0)");
+        ctx.fillStyle = trail;
+        ctx.beginPath();
+        ctx.ellipse(0, 18, 16, 28, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 舰体
+        ctx.save();
+        ctx.translate(x + w / 2, y + h / 2);
+
+        // 主翼
+        ctx.fillStyle = "rgba(125, 211, 252, 0.95)";
+        ctx.beginPath();
+        ctx.moveTo(-26, 24);
+        ctx.lineTo(-58, 38);
+        ctx.lineTo(-22, 54);
+        ctx.lineTo(0, 34);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(26, 24);
+        ctx.lineTo(58, 38);
+        ctx.lineTo(22, 54);
+        ctx.lineTo(0, 34);
+        ctx.closePath();
+        ctx.fill();
+
+        // 机身
+        ctx.fillStyle = "#dbeafe";
+        ctx.beginPath();
+        ctx.moveTo(0, -42);
+        ctx.lineTo(20, 10);
+        ctx.lineTo(0, 38);
+        ctx.lineTo(-20, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        // 中间舱
+        ctx.fillStyle = "rgba(14, 165, 233, 0.9)";
+        ctx.fillRect(-12, -14, 24, 28);
+
+        // 头灯
+        ctx.fillStyle = "#fef3c7";
+        ctx.fillRect(-8, -44, 6, 10);
+        ctx.fillRect(2, -44, 6, 10);
+
+        // 尾灯
+        ctx.fillStyle = "#fbbf24";
+        ctx.fillRect(-12, 30, 6, 10);
+        ctx.fillRect(6, 30, 6, 10);
+
+        ctx.restore();
+
+        // 机甲护甲线
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 18, y + 12);
+        ctx.lineTo(x + 52, y + 48);
+        ctx.moveTo(x + 50, y + 12);
+        ctx.lineTo(x + 18, y + 48);
+        ctx.stroke();
+      }
+
+      function drawObstacle(o) {
+        ctx.save();
+        ctx.translate(o.x, o.y);
+
+        const bodyGrad = ctx.createLinearGradient(0, 0, 0, o.h);
+        bodyGrad.addColorStop(0, "#fca5a5");
+        bodyGrad.addColorStop(1, "#ef4444");
+        ctx.fillStyle = bodyGrad;
+
+        // 敌方机体
+        ctx.beginPath();
+        ctx.moveTo(o.w * 0.5, 0);
+        ctx.lineTo(o.w, o.h * 0.28);
+        ctx.lineTo(o.w * 0.8, o.h);
+        ctx.lineTo(o.w * 0.2, o.h);
+        ctx.lineTo(0, o.h * 0.28);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.16)";
+        ctx.fillRect(o.w * 0.2, o.h * 0.2, o.w * 0.6, o.h * 0.25);
+
+        // 热刀
+        ctx.fillStyle = "rgba(251,146,60,0.9)";
+        ctx.fillRect(o.w * 0.22, o.h * 0.72, o.w * 0.56, 8);
+
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        for (const p of particles) {
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillRect(p.x, p.y, 4, 4);
+          p.x += p.vx * 0.016;
+          p.y += p.vy * 0.016;
+          p.life -= 0.016;
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function updateObstaclePositions() {
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          o.y += o.speed * 2.8;
+
+          const hit =
+            playerX + 68 > o.x &&
+            playerX < o.x + o.w &&
+            canvas.height - 110 + 90 > o.y &&
+            canvas.height - 110 < o.y + o.h;
+
+          if (hit) {
+            createExplosion(playerX + 34, canvas.height - 80);
+            endGame();
+            return;
+          }
+
+          if (o.y > canvas.height + 100) {
+            obstacles.splice(i, 1);
+            score += 1;
+            updateDangerLevel();
+            updateStory();
+            updateHUD();
+          }
+        }
+      }
+
+      function updateDangerLevel() {
+        dangerLevel = 1 + Math.floor(score / 6);
+        dangerValue.textContent = `Lv.${dangerLevel}`;
+      }
+
+      function drawAll() {
+        drawBackground();
+
+        for (const o of obstacles) drawObstacle(o);
+        drawPlayer();
+
+        drawParticles();
+      }
+
+      function endGame() {
+        gameStarted = false;
+        clearInterval(countdownTimer);
+        clearInterval(spawnTimer);
+        clearInterval(animationTimer);
+        stopMusic();
+
+        finalScore.textContent = score;
+        resultTitle.textContent = score >= 20 ? "任务成功" : "任务失败";
+        resultText.textContent = score >= 20
+          ? `最终得分：${score}，你突破了末日赛道，成功逃离黑暗区！`
+          : `最终得分：${score}，你被磁暴吞没了。请重试，继续冲破封锁。`;
+
+        overlay.style.display = "flex";
+        playGameOverTone();
+      }
+
+      function playTone({ frequency = 220, duration = 120, type = "sine", volume = 0.04 } = {}) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.value = frequency;
+
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration / 1000);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration / 1000);
+      }
+
+      function initAudio() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        if (!audioCtx) {
+          audioCtx = new AudioCtx();
+        }
+
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+      }
+
+      function playGameOverTone() {
+        if (!audioCtx) return;
+        playTone({ frequency: 180, duration: 200, type: "sawtooth", volume: 0.05 });
+        setTimeout(() => {
+          playTone({ frequency: 120, duration: 250, type: "triangle", volume: 0.05 });
+        }, 150);
+      }
+
+      function startMusic() {
+        initAudio();
+        if (!audioCtx) return;
+        stopMusic();
+
+        const lead = [220, 277, 330, 392, 330, 277, 220, 196];
+        const bass = [55, 65, 73, 82];
+        const pad = [146.83, 174.61, 196.0, 220];
+
+        musicTimer = setInterval(() => {
+          const note = lead[themeStep % lead.length];
+          const bassNote = bass[themeStep % bass.length];
+          const padNote = pad[themeStep % pad.length];
+
+          playTone({ frequency: note, duration: 170, type: "sawtooth", volume: 0.028 });
+          playTone({ frequency: note / 2, duration: 230, type: "triangle", volume: 0.018 });
+          playTone({ frequency: bassNote, duration: 180, type: "square", volume: 0.017 });
+          playTone({ frequency: padNote, duration: 260, type: "sine", volume: 0.012 });
+
+          themeStep += 1;
+        }, 210);
+      }
+
+      function startGame() {
+        initAudio();
+        startMusic();
+
+        score = 0;
+        timeLeft = 30;
+        dangerLevel = 1;
+        gameStarted = true;
+        obstacles = [];
+        particles = [];
+        moveLeft = false;
+        moveRight = false;
+
+        overlay.style.display = "none";
+        updateHUD();
+        updateStory();
+        setPlayerPosition(canvas.width / 2 - 34);
+
+        clearInterval(countdownTimer);
+        clearInterval(spawnTimer);
+        clearInterval(animationTimer);
+
+        countdownTimer = setInterval(() => {
+          if (!gameStarted) return;
+          timeLeft -= 1;
+          updateHUD();
+
+          if (timeLeft <= 0) {
+            endGame();
+          }
+        }, 1000);
+
+        spawnTimer = setInterval(() => {
+          if (gameStarted) createObstacle();
+        }, 760);
+
+        animationTimer = setInterval(() => {
+          if (!gameStarted) return;
+
+          const step = 12;
+          if (moveLeft) setPlayerPosition(playerX - step);
+          if (moveRight) setPlayerPosition(playerX + step);
+
+          updateObstaclePositions();
+
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * 0.016;
+            p.y += p.vy * 0.016;
+            p.life -= 0.016;
+            if (p.life <= 0) particles.splice(i, 1);
+          }
+
+          drawAll();
+        }, 16);
+      }
+
+      document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if (key === "arrowleft" || key === "a") moveLeft = true;
+        if (key === "arrowright" || key === "d") moveRight = true;
+      });
+
+      document.addEventListener("keyup", (event) => {
+        const key = event.key.toLowerCase();
+        if (key === "arrowleft" || key === "a") moveLeft = false;
+        if (key === "arrowright" || key === "d") moveRight = false;
+      });
+
+      leftBtn.addEventListener("pointerdown", () => { moveLeft = true; });
+      leftBtn.addEventListener("pointerup", () => { moveLeft = false; });
+      leftBtn.addEventListener("pointerleave", () => { moveLeft = false; });
+
+      rightBtn.addEventListener("pointerdown", () => { moveRight = true; });
+      rightBtn.addEventListener("pointerup", () => { moveRight = false; });
+      rightBtn.addEventListener("pointerleave", () => { moveRight = false; });
+
+      startBtn.addEventListener("click", startGame);
+      restartBtn.addEventListener("click", startGame);
+
+      resizeCanvas();
+      createStars();
+      updateHUD();
+      updateStory();
+      drawAll();
+      window.addEventListener("resize", resizeCanvas);
+    </script>
+  </body>
+</html>

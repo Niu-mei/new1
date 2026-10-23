@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D 赛车原型</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b1020;
+      color: white;
+      font-family: "Segoe UI", sans-serif;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    #game {
+      background: #111827;
+      border: 2px solid #374151;
+      box-shadow: 0 0 30px rgba(0,0,0,0.35);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const keys = {};
+    window.addEventListener("keydown", (e) => {
+      const k = e.key.toLowerCase();
+      keys[k] = true;
+    });
+    window.addEventListener("keyup", (e) => {
+      const k = e.key.toLowerCase();
+      keys[k] = false;
+    });
+
+    const track = {
+      cx: canvas.width / 2,
+      cy: canvas.height / 2,
+      inner: 150,
+      outer: 220,
+      startAngle: -Math.PI / 2
+    };
+
+    const player = {
+      x: track.cx + 190,
+      y: track.cy,
+      angle: 0,
+      speed: 0,
+      maxSpeed: 260,
+      accel: 180,
+      brake: 220,
+      turnSpeed: 2.6,
+      friction: 0.985
+    };
+
+    const ai = {
+      x: 0,
+      y: 0,
+      angle: 0,
+      speed: 90,
+      orbit: Math.PI * 0.5,
+      color: "#60a5fa"
+    };
+
+    const state = {
+      lap: 0,
+      timer: 0,
+      started: false,
+      lastProgress: 0,
+      aiLap: 0
+    };
+
+    function clamp(v, min, max) {
+      return Math.min(Math.max(v, min), max);
+    }
+
+    function normalizeAngle(a) {
+      while (a < -Math.PI) a += Math.PI * 2;
+      while (a > Math.PI) a -= Math.PI * 2;
+      return a;
+    }
+
+    function getProgress(x, y) {
+      const dx = x - track.cx;
+      const dy = y - track.cy;
+      const a = Math.atan2(dy, dx);
+      return ((a - track.startAngle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2);
+    }
+
+    function updatePlayer(dt) {
+      const up = keys["w"] || keys["arrowup"];
+      const down = keys["s"] || keys["arrowdown"];
+      const left = keys["a"] || keys["arrowleft"];
+      const right = keys["d"] || keys["arrowright"];
+
+      if (left) player.angle -= player.turnSpeed * dt;
+      if (right) player.angle += player.turnSpeed * dt;
+
+      if (up) {
+        player.speed += player.accel * dt;
+      } else if (down) {
+        player.speed -= player.brake * dt;
+      } else {
+        player.speed *= player.friction;
+      }
+
+      player.speed = clamp(player.speed, -80, player.maxSpeed);
+
+      player.x += Math.cos(player.angle) * player.speed * dt;
+      player.y += Math.sin(player.angle) * player.speed * dt;
+
+      const dist = Math.hypot(player.x - track.cx, player.y - track.cy);
+
+      if (dist < track.inner || dist > track.outer) {
+        player.speed *= -0.25;
+
+        const nx = (player.x - track.cx) / Math.max(dist, 1);
+        const ny = (player.y - track.cy) / Math.max(dist, 1);
+
+        const push = (dist < track.inner ? track.inner : track.outer) - dist;
+        player.x += nx * push * 0.7;
+        player.y += ny * push * 0.7;
+      }
+
+      const progress = getProgress(player.x, player.y);
+
+      if (player.speed > 20 && state.lastProgress > 0.9 && progress < 0.1) {
+        state.lap += 1;
+      }
+
+      state.lastProgress = progress;
+    }
+
+    function updateAI(dt) {
+      ai.orbit += (ai.speed / 180) * dt;
+      ai.x = track.cx + Math.cos(ai.orbit) * 190;
+      ai.y = track.cy + Math.sin(ai.orbit) * 190;
+      ai.angle = Math.atan2(
+        Math.sin(ai.orbit + Math.PI / 2),
+        Math.cos(ai.orbit + Math.PI / 2)
+      );
+    }
+
+    function drawTrack() {
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 赛道背景
+      ctx.beginPath();
+      ctx.arc(track.cx, track.cy, track.outer + 24, 0, Math.PI * 2);
+      ctx.fillStyle = "#1f2937";
+      ctx.fill();
+
+      // 赛道环
+      ctx.beginPath();
+      ctx.arc(track.cx, track.cy, track.outer, 0, Math.PI * 2);
+      ctx.lineWidth = 48;
+      ctx.strokeStyle = "#4ade80";
+      ctx.stroke();
+
+      // 内圈
+      ctx.beginPath();
+      ctx.arc(track.cx, track.cy, track.inner, 0, Math.PI * 2);
+      ctx.lineWidth = 48;
+      ctx.strokeStyle = "#0f172a";
+      ctx.stroke();
+
+      // 起点线
+      const sx = track.cx + Math.cos(track.startAngle) * track.outer;
+      const sy = track.cy + Math.sin(track.startAngle) * track.outer;
+      const ex = track.cx + Math.cos(track.startAngle) * (track.outer + 36);
+      const ey = track.cy + Math.sin(track.startAngle) * (track.outer + 36);
+
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.strokeStyle = "#f8fafc";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    function drawCar(x, y, angle, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillStyle = color;
+      ctx.fillRect(-16, -9, 32, 18);
+
+      // 车头
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(10, -3, 8, 6);
+
+      // 车轮
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(-14, -12, 6, 4);
+      ctx.fillRect(-14, 8, 6, 4);
+      ctx.fillRect(8, -12, 6, 4);
+      ctx.fillRect(8, 8, 6, 4);
+      ctx.restore();
+    }
+
+    function drawHUD() {
+      ctx.fillStyle = "rgba(15, 23, 42, 0.7)";
+      ctx.fillRect(18, 18, 240, 80);
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px sans-serif";
+      ctx.fillText("Lap: " + state.lap, 30, 46);
+      ctx.fillText("Speed: " + Math.round(Math.abs(player.speed)) + " km/h", 30, 72);
+      ctx.fillText("Time: " + state.timer.toFixed(1) + "s", 30, 98);
+    }
+
+    let lastTime = 0;
+    function loop(ts) {
+      const dt = Math.min((ts - lastTime) / 1000 || 0.016, 0.033);
+      lastTime = ts;
+
+      state.timer += dt;
+
+      updatePlayer(dt);
+      updateAI(dt);
+
+      drawTrack();
+      drawCar(player.x, player.y, player.angle, "#f97316");
+      drawCar(ai.x, ai.y, ai.angle, ai.color);
+
+      drawHUD();
+
+      requestAnimationFrame(loop);
+    }
+
+    player.x = track.cx + 190;
+    player.y = track.cy;
+    player.angle = 0;
+    state.lastProgress = getProgress(player.x, player.y);
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
